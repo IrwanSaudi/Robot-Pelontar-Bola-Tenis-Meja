@@ -1,0 +1,422 @@
+#include <Wire.h>
+#include <PCA9685.h>
+PCA9685 driver;
+PCA9685_ServoEvaluator pwmServo(102, 470);
+//motor=====================/////////////////
+#define moka1 13
+#define moka2 12 // pin 7 vnh2sp30
+#define moki1 8
+#define moki2 7//pin 9 vnh2sp30
+#define pwm1 10
+#define pwm2 11
+//////////////////////////////////////////////
+//Konveyor atas==================//////
+#define moconveyor 4
+#define moconveyord 6
+#define pwmcon 9 
+int conpwm=0;//konveyor atas
+////////////////////////////////////////
+//Konveyor bawah===============//////
+int pos2 = 0;//konveyor
+int trigpos2 = 5000000000;//trigger pos 2// buat konveyor
+49
+/////////////////////////////////////////////////////////
+//Rumus dan setup Motor===============///////////////////
+int pwmmotor=0;//Motor Atas
+int pwmmotor2=0;//Motor Bawah
+int bpwm=0;//kecepatan topspin
+int cpwm=0;//kecepatan backspin
+int spinbola;
+float wradpersb;
+float wradpersc;
+float vmpersb;
+float vmpersc;
+float vbola;
+const float Pi = 3.14159; 
+int kondisispin=0;
+////////////////////////////////////////////
+//Rumus dan setup servo================/////////////////////
+int pos = 0;//servo trajectory 
+int pos1 = -10;//servo trajectory
+int trigservoposkkab =0;
+int trigservoposkk = 0;
+int trigservoposab = 0;
+50
+int trigservotlbd = 0;
+int trigservobltengg =0;
+/////////////////////////////////////////////////
+int incomingByte;
+//millis==============/////////////////////////////////////////////
+unsigned long interval=trigpos2; // the time we need to wait
+unsigned long previousMillis=0; // millis() returns an unsigned long.
+//////////////////////////////////////////////////////////////////////
+//=================================================================
+===============================================================//
+void setup() {
+Wire.begin(); // Wire must be started first
+ Wire.setClock(400000); // Supported baud rates are 100kHz, 400kHz, and 1000kHz
+ driver.resetDevices(); // Software resets all PCA9685 devices on Wire line
+ driver.init(B000000); // Address pins A5-A0 set to B000000
+ driver.setPWMFrequency(50); // Set frequency to 50Hz
+ 
+ // initialize serial communication:
+ Serial.begin(9600);
+ // initialize the LED pin as an output:
+51
+//motor====================////////////
+pinMode(moka1, OUTPUT);
+pinMode(moka2, OUTPUT);
+ pinMode(moki1, OUTPUT);
+ pinMode(moki2, OUTPUT);
+ 
+pinMode(pwm1, OUTPUT);
+pinMode(pwm2, OUTPUT);
+//////////////////////////////////////
+//konveyor atas===========////////////////
+pinMode(moconveyor, OUTPUT);
+pinMode(moconveyord, OUTPUT);
+pinMode(pwmcon, OUTPUT);
+//////////////////////////////////////////
+}
+//=================================================================
+=========================================================
+void loop() {
+//millis=====================//////////////////
+unsigned long currentMillis = millis(); // grab current time
+///////////////////////////////////////////////
+52
+//Rumus untuk motor dc============//////////////
+wradpersb=(bpwm*2*Pi)/60;
+wradpersc=(cpwm*2*Pi)/60;
+vmpersb=wradpersb*(0.02);
+vmpersc=wradpersc*(0.02);
+vbola=(vmpersb+vmpersc)/2;
+spinbola=bpwm-cpwm;
+/*Serial.print("bpwm:");
+Serial.print(bpwm);
+Serial.print('\n');
+Serial.print("cpwm:");
+Serial.print(cpwm);
+Serial.print('\n');
+/*Serial.print("wradpersb:");
+Serial.print(wradpersb);
+Serial.print('\n');
+Serial.print("wradpersc:");
+Serial.print(wradpersc);
+Serial.print('\n');*/
+/*
+Serial.print("vmpersb:");
+Serial.print(vmpersb);
+53
+Serial.print('\n');
+Serial.print("vmpersc:");
+Serial.print(vmpersc);
+Serial.print('\n');
+Serial.print("spinbola:");
+Serial.print(spinbola);
+Serial.print('\n');
+Serial.print("vbola:");
+Serial.print(vbola);
+Serial.print('\n');
+Serial.print('\n');
+Serial.print('\n');
+delay(500);*/
+/////////////////////////////////////////////////
+ 
+//motor DC logic=================////////////////////////////
+digitalWrite(moka1, HIGH);
+digitalWrite(moka2, HIGH);
+ digitalWrite(moki1,HIGH);
+ digitalWrite(moki2, HIGH);
+analogWrite(pwm1, pwmmotor);
+54
+analogWrite(pwm2, pwmmotor2);
+///////////////////////////////////////////////////
+//Mulai Bluetooth
+ if (Serial.available() > 0) {
+ incomingByte = Serial.read();
+//konveyor===================================//
+if (incomingByte == 'v') {interval=1000000000000000;digitalWrite(moconveyor, 
+LOW);digitalWrite(moconveyord, LOW);}// 0 bola/min
+if (incomingByte == 'r') {interval=750;digitalWrite(moconveyor, 
+HIGH);digitalWrite(moconveyord, LOW);}//40 bola/min
+if (incomingByte == 's') {interval=600;digitalWrite(moconveyor, 
+HIGH);digitalWrite(moconveyord, LOW);}//50 bola/min
+if (incomingByte == 't') {interval=500;digitalWrite(moconveyor, 
+HIGH);digitalWrite(moconveyord, LOW);}//60 bola/min
+if (incomingByte == 'u') {interval=429;digitalWrite(moconveyor, 
+HIGH);digitalWrite(moconveyord, LOW);}//70 bola/min 
+////////////////////////////////////////////////
+//servo========================================//
+if (incomingByte == 'b') 
+{trigservoposab=0;trigservobltengg=0;trigservotlbd=0;trigservoposkk=trigservoposkk+1;if(tr
+igservoposkk>=9){trigservoposkk=9;}} //plus kk
+if (incomingByte == 'a') 
+{trigservoposab=0;trigservobltengg=0;trigservotlbd=0;trigservoposkk=trigservoposkk1;if(trigservoposkk<=-9){trigservoposkk=-9;}} //minus kk
+55
+if (incomingByte == 'w') 
+{trigservoposkk=0;trigservoposab=0;trigservobltengg=0;trigservotlbd=0;}// tengah 0
+if (incomingByte == 'd') 
+{trigservoposkk=0;trigservobltengg=0;trigservotlbd=0;trigservoposab=trigservoposab+1;if(tr
+igservoposab>=9){trigservoposab=9;}} //plus ab 
+if (incomingByte == 'c') 
+{trigservoposkk=0;trigservobltengg=0;trigservotlbd=0;trigservoposab=trigservoposab1;if(trigservoposab<=-9){trigservoposab=-9;}} //minus ab
+if (incomingByte == 
+'x'){trigservoposab=0;trigservoposkk=0;trigservobltengg=0;trigservotlbd=trigservotlbd+1;} // 
+Atas Kanan
+if (incomingByte == 'A') 
+{trigservoposab=0;trigservoposkk=0;trigservobltengg=0;trigservotlbd=trigservotlbd-1;} // 
+Bawah Kiri
+if (incomingByte == 'z') 
+{trigservoposab=0;trigservoposkk=0;trigservotlbd=0;trigservobltengg=trigservobltengg-1;}// 
+Bawah Kanan 
+if (incomingByte == 'y') 
+{trigservoposab=0;trigservoposkk=0;trigservotlbd=0;trigservobltengg=trigservobltengg+1;} 
+// Atas Kiri
+ 
+//data buat servo==============================///
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==0){pos=0;pos1=-10;}// tengah 0
+56
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==1 && 
+trigservobltengg==0){pos=0;pos1=0;}// atas kanan
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==2 && 
+trigservobltengg==0){pos=-5;pos1=-10;}// atas kanan
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==3 && 
+trigservobltengg==0){pos=-15;pos1=-10;}// atas kanan
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==4 && 
+trigservobltengg==0){pos=-30;pos1=-10;}// atas kanan
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==5 && 
+trigservobltengg==0){pos=-60;pos1=-10;}// atas kanan
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==6 && 
+trigservobltengg==0){pos=-70;pos1=-10;}// atas kanan
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==7 && 
+trigservobltengg==0){pos=-80;pos1=-10;}// atas kanan
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==8 && 
+trigservobltengg==0){pos=-85;pos1=-10;}// atas kanan
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==9 && 
+trigservobltengg==0){pos=-90;pos1=-10;}// atas kanan
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==-1 && 
+trigservobltengg==0){pos=20;pos1=-20;}// bawah kiri
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==-2 && 
+trigservobltengg==0){pos=25;pos1=-20;}// bawah kiri
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==-3 && 
+trigservobltengg==0){pos=30;pos1=-20;}// bawah kiri
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==-4 && 
+trigservobltengg==0){pos=40;pos1=-20;}// bawah kiri
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==-5 && 
+trigservobltengg==0){pos=50;pos1=-20;}// bawah kiri
+57
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==-6 && 
+trigservobltengg==0){pos=60;pos1=-20;}// bawah kiri
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==-7 && 
+trigservobltengg==0){pos=70;pos1=-20;}// bawah kiri
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==-8 && 
+trigservobltengg==0){pos=85;pos1=-20;}// bawah kiri
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==-9 && 
+trigservobltengg==0){pos=90;pos1=-20;}// bawah kiri
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==1){pos=0;pos1=5;}// atas kiri
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==2){pos=0;pos1=15;}// atas kiri
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==3){pos=0;pos1=30;}// atas kiri
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==4){pos=0;pos1=40;}// atas kiri
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==5){pos=0;pos1=50;}// atas kiri
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==6){pos=0;pos1=70;}// atas kiri
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==7){pos=0;pos1=80;}// atas kiri
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==8){pos=0;pos1=85;}// atas kiri
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==9){pos=0;pos1=90;}// atas kiri
+58
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==0 && trigservobltengg==-
+1){pos=-20;pos1=-50;}// bawah kanan
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==0 && trigservobltengg==-
+2){pos=-20;pos1=-55;}// bawah kanan
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==0 && trigservobltengg==-
+3){pos=-20;pos1=-60;}// bawah kanan
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==0 && trigservobltengg==-
+4){pos=-20;pos1=-65;}// bawah kanan
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==0 && trigservobltengg==-
+5){pos=-20;pos1=-70;}// bawah kanan
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==0 && trigservobltengg==-
+6){pos=-20;pos1=-75;}// bawah kanan
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==0 && trigservobltengg==-
+7){pos=-20;pos1=-80;}// bawah kanan
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==0 && trigservobltengg==-
+8){pos=-20;pos1=-85;}// bawah kanan
+if (trigservoposkk==0 && trigservoposab==0 && trigservotlbd==0 && trigservobltengg==-
+9){pos=-20;pos1=-90;}// bawah kanan
+if (trigservoposkk==1 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==0){pos=-20;pos1=-10;}//kanan 5 derajat
+if (trigservoposkk==2 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==0){pos=-30;pos1=-20;}//kanan 10 derajat
+if (trigservoposkk==3 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==0){pos=-40;pos1=-30;}//kanan 15 derajat 
+if (trigservoposkk==4 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==0){pos=-50;pos1=-40;}// kanan 20 derajat
+59
+if (trigservoposkk==5 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==0){pos=-55;pos1=-45;}//kanan 25 derajat
+if (trigservoposkk==6 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==0){pos=-50;pos1=-60;}//kanan 30 derajat
+if (trigservoposkk==7 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==0){pos=-70;pos1=-60;}//kanan 35 derajat
+if (trigservoposkk==8 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==0){pos=-80;pos1=-70;}//kanan 40 derajat
+if (trigservoposkk==9 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==0){pos=-90;pos1=-80;}//kanan 45 derajat
+if (trigservoposkk==-1 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==0){pos=-5;pos1=5;}//kiri 5 derajat
+if (trigservoposkk==-2 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==0){pos=0;pos1=10;}//kiri 10 derajat
+if (trigservoposkk==-3 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==0){pos=5;pos1=15;}//kiri 15 derajat
+if (trigservoposkk==-4 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==0){pos=10;pos1=30;}//kiri 20 derajat 
+if (trigservoposkk==-5 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==0){pos=20;pos1=40;}//kiri 25 derajat
+if (trigservoposkk==-6 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==0){pos=30;pos1=50;}//kiri 30 derajat
+if (trigservoposkk==-7 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==0){pos=40;pos1=60;}//kiri 35 derajat
+if (trigservoposkk==-8 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==0){pos=55;pos1=75;}//kiri 40 derajat
+if (trigservoposkk==-9 && trigservoposab==0 && trigservotlbd==0 && 
+trigservobltengg==0){pos=60;pos1=80;}//kiri 45 derajat
+60
+if (trigservoposkk==0 && trigservoposab==1 && trigservotlbd==0 && 
+trigservobltengg==0){pos= 0;pos1= -10;}//atas 5 derajat
+if (trigservoposkk==0 && trigservoposab==2 && trigservotlbd==0 && 
+trigservobltengg==0){pos=-10;pos1= 0;}//atas 10 derajat
+if (trigservoposkk==0 && trigservoposab==3 && trigservotlbd==0 && 
+trigservobltengg==0){pos=-15;pos1= 5;}//atas 15 derajat
+if (trigservoposkk==0 && trigservoposab==4 && trigservotlbd==0 && 
+trigservobltengg==0){pos=-20;pos1= 10;}//atas 20 derajat
+if (trigservoposkk==0 && trigservoposab==5 && trigservotlbd==0 && 
+trigservobltengg==0){pos=-30;pos1= 20;}//atas 25 derajat
+if (trigservoposkk==0 && trigservoposab==6 && trigservotlbd==0 && 
+trigservobltengg==0){pos=-35;pos1= 25;}//atas 30 derajat
+if (trigservoposkk==0 && trigservoposab==7 && trigservotlbd==0 && 
+trigservobltengg==0){pos=-40;pos1= 30;}//atas 35 derajat
+if (trigservoposkk==0 && trigservoposab==8 && trigservotlbd==0 && 
+trigservobltengg==0){pos=-50;pos1= 40;}//atas 40 derajat
+if (trigservoposkk==0 && trigservoposab==9 && trigservotlbd==0 && 
+trigservobltengg==0){pos=-60;pos1= 50;}//atas 45 derajat
+if (trigservoposkk==0 && trigservoposab==-1 && trigservotlbd==0 && 
+trigservobltengg==0){pos=10;pos1= -20;}//bawah 5 derajat
+if (trigservoposkk==0 && trigservoposab==-2 && trigservotlbd==0 && 
+trigservobltengg==0){pos=15;pos1= -25;}//bawah 10 derajat
+if (trigservoposkk==0 && trigservoposab==-3 && trigservotlbd==0 && 
+trigservobltengg==0){pos=20;pos1= -30;}//bawah 15 derajat
+if (trigservoposkk==0 && trigservoposab==-4 && trigservotlbd==0 && 
+trigservobltengg==0){pos= 30;pos1= -40;}//bawah 20 derajat
+61
+if (trigservoposkk==0 && trigservoposab==-5 && trigservotlbd==0 && 
+trigservobltengg==0){pos= 35;pos1= -45;}//bawah 25 derajat
+if (trigservoposkk==0 && trigservoposab==-6 && trigservotlbd==0 && 
+trigservobltengg==0){pos= 40;pos1= -50;}//bawah 30 derajat
+if (trigservoposkk==0 && trigservoposab==-7 && trigservotlbd==0 && 
+trigservobltengg==0){pos= 45;pos1= -55;}//bawah 35 derajat
+if (trigservoposkk==0 && trigservoposab==-8 && trigservotlbd==0 && 
+trigservobltengg==0){pos= 50;pos1= -60;}//bawah 40 derajat
+if (trigservoposkk==0 && trigservoposab==-9 && trigservotlbd==0 && 
+trigservobltengg==0){pos= 60;pos1= -70;}//bawah 45 derajat
+//////////////////////////////////////////////////
+ 
+// motor 
+penemnbak===============================///////////////////////////////////////////////////////
+////////// 
+if(kondisispin==0){
+if (incomingByte == 'i') 
+{bpwm=bpwm+1000;cpwm=cpwm+1000;if(bpwm>=10000){bpwm=10000;};if(cpwm>=10
+000){cpwm=10000;}} //Linier
+if (incomingByte == 'h') {bpwm=bpwm-1000;cpwm=cpwm1000;if(bpwm<=0){bpwm=0;};if(cpwm<=0){cpwm=0;}}
+ }
+ 
+if(kondisispin==1){
+ 
+if (incomingByte == 'k') 
+{bpwm=bpwm+1000;cpwm=cpwm+1000;if(bpwm>=10000){bpwm=10000;};if(cpwm>=90
+00){cpwm=9000;};if(bpwm==cpwm){cpwm=cpwm-1000;}}
+62
+if (incomingByte == 'j') {bpwm=bpwm-1000;cpwm=cpwm1000;if(bpwm<=3000){bpwm=3000;};if(cpwm<=1000){cpwm=1000;};if(bpwm==cpwm){c
+pwm=cpwm-1000;}} 
+if (incomingByte == 'm') 
+{bpwm=bpwm+1000;if(bpwm>=10000){bpwm=10000;};if(cpwm>=9000){cpwm=9000;};if
+(bpwm==cpwm){cpwm=cpwm-1000;}} //Topspin 
+if (incomingByte == 'l') {bpwm=bpwm1000;if(bpwm<=3000){bpwm=3000;};if(cpwm<=1000){cpwm=1000;};if(bpwm==cpwm){c
+pwm=cpwm-1000;}}
+ }
+if(kondisispin==2){
+ 
+if (incomingByte == 'o') 
+{bpwm=bpwm+1000;cpwm=cpwm+1000;if(bpwm>=9000){bpwm=9000;};if(cpwm>=1000
+0){cpwm=10000;};if(cpwm==bpwm){cpwm=cpwm-1000;}}
+if (incomingByte == 'n') {bpwm=bpwm-1000;cpwm=cpwm1000;if(bpwm<=0){bpwm=0;};if(cpwm<=0){cpwm=0;};if(cpwm==bpwm){cpwm=cpwm1000;}} //Backspin 
+if (incomingByte == 'q') 
+{cpwm=cpwm+1000;if(bpwm>=9000){bpwm=9000;};if(cpwm>=10000){cpwm=10000;};if(
+cpwm==bpwm){cpwm=cpwm-1000;}} 
+if (incomingByte == 'p') {cpwm=cpwm1000;if(bpwm>=9000){bpwm=9000;};if(cpwm>=10000){cpwm=10000;};if(cpwm==bpwm)
+{cpwm=cpwm-1000;}}
+ }
+ 
+//mode spin ==============================/////////////////////
+if (incomingByte == 'e') {bpwm=0;cpwm=0;kondisispin=0;}//Linier
+63
+if (incomingByte == 'f') {bpwm=3000;cpwm=1000;kondisispin=1;}//Topspin
+if (incomingByte == 'g') {bpwm=1000;cpwm=3000;kondisispin=2;}//Backspin
+ 
+ }
+ 
+//data motor dc===============///////////////////////////////////////////////////////////////////
+if (bpwm==0){pwmmotor=0;}//0 rpm motor atas
+if (bpwm==1000){pwmmotor=10;}//1000 rpm motor atas
+if (bpwm==2000){pwmmotor=13;}//2000 rpm motor atas
+if (bpwm==3000){pwmmotor=14;}//3000 rpm motor atas
+if (bpwm==4000){pwmmotor=16;}//4000 rpm motor atas
+if (bpwm==5000){pwmmotor=19;}//5000 rpm motor atas
+if (bpwm==6000){pwmmotor=22;}//6000 rpm motor atas
+if (bpwm==7000){pwmmotor=24;}//7000 rpm motor atas
+if (bpwm==8000){pwmmotor=28;}//8000 rpm motor atas
+if (bpwm==9000){pwmmotor=32;}//9000 rpm motor atas
+if (bpwm==10000){pwmmotor=40;}//10000 rpm motor atas
+if (cpwm==0){pwmmotor2=0;}//0 rpm motor bawah
+if (cpwm==1000){pwmmotor2=12;}//1000 rpm motor bawah
+if (cpwm==2000){pwmmotor2=13;}//2000 rpm motor bawah
+if (cpwm==3000){pwmmotor2=16;}//3000 rpm motor bawah
+if (cpwm==4000){pwmmotor2=20;}//4000 rpm motor bawah
+if (cpwm==5000){pwmmotor2=23;}//5000 rpm motor bawah
+if (cpwm==6000){pwmmotor2=26;}//6000 rpm motor bawah
+if (cpwm==7000){pwmmotor2=28;}//7000 rpm motor bawah
+64
+if (cpwm==8000){pwmmotor2=32;}//8000 rpm motor bawah
+if (cpwm==9000){pwmmotor2=41;}//9000 rpm motor bawah
+if (cpwm==10000){pwmmotor2=49;}//10000 rpm motor bawah
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// check if "interval" time has passed (conveyor milliseconds)
+if ((unsigned long)(currentMillis - previousMillis) >= interval) {
+previousMillis = millis();
+ if (pos2 == 20)
+ {pos2 = -60;}// sudut konveyor//Konveyor bawah
+ else {pos2 = 20;}
+ 
+ if (conpwm == 0)
+ {conpwm = 100;}// konveyor pengaduk//konveyor atas
+ else {conpwm = 0;}
+ 
+driver.setChannelPWM(11, pwmServo.pwmForAngle(pos2));//sudut konveyor
+analogWrite(pwmcon, conpwm);//// konveyor pengaduk
+}
+//sudut servo trajectory==================/////////////
+driver.setChannelPWM(0, pwmServo.pwmForAngle(pos1));
+65
+driver.setChannelPWM(2, pwmServo.pwmForAngle(pos)); 
+////////////////////////////////////////////////////// 
+ 
+ }
